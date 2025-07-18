@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,8 @@ import {
   Alert,
   Dimensions,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {LinearGradient} from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface Investor {
   id: number;
@@ -33,9 +33,9 @@ interface SimulationState {
   payoutRate: number;
 }
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-const PonziSimulation = ({navigation}: any) => {
+const PonziSimulation = ({ navigation }: any) => {
   const [simulation, setSimulation] = useState<SimulationState>({
     investors: [
       {
@@ -120,7 +120,7 @@ const PonziSimulation = ({navigation}: any) => {
       const growthRate = recentInvestors / Math.max(1, simulation.investors.length * 0.3);
 
       if (simulation.currentRound > 5 && (growthRate < 0.1 || Math.random() < 0.15)) {
-        setSimulation(prev => ({...prev, isCollapsed: true}));
+        setSimulation(prev => ({ ...prev, isCollapsed: true }));
         setAutoRunning(false);
         Alert.alert(
           'SCHEME COLLAPSED!',
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 24,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,

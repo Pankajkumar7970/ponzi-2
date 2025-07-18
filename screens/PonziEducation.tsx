@@ -7,8 +7,8 @@ import {
   StyleSheet,
   Linking,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {LinearGradient} from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const PonziEducation = () => {
   const warningFlags = [
@@ -20,10 +20,10 @@ const PonziEducation = () => {
   ];
 
   const dangers = [
-    {icon: '💸', text: 'You will likely lose your money when it collapses'},
-    {icon: '🧑‍⚖️', text: "It's illegal – you can be held responsible"},
-    {icon: '👥', text: 'You might unknowingly scam your friends and family'},
-    {icon: '💔', text: 'It destroys trust and damages lives'},
+    { icon: '💸', text: 'You will likely lose your money when it collapses' },
+    { icon: '🧑‍⚖️', text: "It's illegal – you can be held responsible" },
+    { icon: '👥', text: 'You might unknowingly scam your friends and family' },
+    { icon: '💔', text: 'It destroys trust and damages lives' },
   ];
 
   const safeAlternatives = [
