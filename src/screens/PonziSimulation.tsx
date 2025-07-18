@@ -10,7 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
+import {LinearGradient} from 'expo-linear-gradient';
 
 interface Investor {
   id: number;
