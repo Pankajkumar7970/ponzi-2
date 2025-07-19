@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface Investor {
   id: number;
@@ -37,6 +38,7 @@ interface SimulationState {
 const { width } = Dimensions.get('window');
 
 const PonziSimulation = ({ navigation }: any) => {
+  const { theme } = useTheme();
   const [simulation, setSimulation] = useState<SimulationState>({
     investors: [
       {
@@ -99,20 +101,21 @@ const PonziSimulation = ({ navigation }: any) => {
                     <View key={investor.id} style={styles.investorNodeContainer}>
                       <View style={[
                         styles.investorNode,
-                        investor.status === 'profit' && styles.profitNode,
-                        investor.status === 'loss' && styles.lossNode,
-                        investor.status === 'break-even' && styles.breakEvenNode,
+                        investor.status === 'profit' && { backgroundColor: theme.colors.profit, borderColor: theme.colors.success },
+                        investor.status === 'loss' && { backgroundColor: theme.colors.loss, borderColor: theme.colors.error },
+                        investor.status === 'break-even' && { backgroundColor: theme.colors.breakEven, borderColor: theme.colors.warning },
                         simulation.isCollapsed && styles.collapsedNode,
+                        { backgroundColor: theme.colors.card, borderColor: theme.colors.border }
                       ]}>
-                        <Text style={styles.investorNodeText}>
+                        <Text style={[styles.investorNodeText, { color: theme.colors.text }]}>
                           {investor.id === 1 ? 'YOU' : `#${investor.id}`}
                         </Text>
-                        <Text style={styles.investorAmount}>
+                        <Text style={[styles.investorAmount, { color: theme.colors.textSecondary }]}>
                           ₹{investor.investment}
                         </Text>
                         <Text style={[
                           styles.investorProfit,
-                          investor.netProfit >= 0 ? styles.profitText : styles.lossText
+                          investor.netProfit >= 0 ? { color: theme.colors.success } : { color: theme.colors.error }
                         ]}>
                           {investor.netProfit >= 0 ? '+' : ''}₹{investor.netProfit}
                         </Text>
@@ -121,7 +124,7 @@ const PonziSimulation = ({ navigation }: any) => {
                       {/* Arrow to next round */}
                       {roundIndex < rounds - 1 && (
                         <View style={styles.arrowContainer}>
-                          <Text style={styles.arrow}>→</Text>
+                          <Text style={[styles.arrow, { color: theme.colors.textSecondary }]}>→</Text>
                         </View>
                       )}
                     </View>
@@ -130,7 +133,7 @@ const PonziSimulation = ({ navigation }: any) => {
                   {/* Money flow indicator */}
                   {roundIndex > 0 && (
                     <View style={styles.moneyFlow}>
-                      <Text style={styles.moneyFlowText}>
+                      <Text style={[styles.moneyFlowText, { color: theme.colors.primary }]}>
                         💰 Pays earlier investors
                       </Text>
                     </View>
@@ -143,16 +146,16 @@ const PonziSimulation = ({ navigation }: any) => {
         
         <View style={styles.treeLegend}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, styles.profitNode]} />
-            <Text style={styles.legendText}>Making Profit</Text>
+            <View style={[styles.legendDot, { backgroundColor: theme.colors.profit, borderColor: theme.colors.success }]} />
+            <Text style={[styles.legendText, { color: theme.colors.textSecondary }]}>Making Profit</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, styles.lossNode]} />
-            <Text style={styles.legendText}>Lost Money</Text>
+            <View style={[styles.legendDot, { backgroundColor: theme.colors.loss, borderColor: theme.colors.error }]} />
+            <Text style={[styles.legendText, { color: theme.colors.textSecondary }]}>Lost Money</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, styles.breakEvenNode]} />
-            <Text style={styles.legendText}>Break Even</Text>
+            <View style={[styles.legendDot, { backgroundColor: theme.colors.breakEven, borderColor: theme.colors.warning }]} />
+            <Text style={[styles.legendText, { color: theme.colors.textSecondary }]}>Break Even</Text>
           </View>
         </View>
       </View>
@@ -280,35 +283,40 @@ const PonziSimulation = ({ navigation }: any) => {
 
   if (!gameStarted) {
     return (
-      <SafeAreaView style={styles.container}>
-        <LinearGradient colors={['#2563eb', '#10b981']} style={styles.gradient}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <LinearGradient colors={[theme.colors.gradientStart, theme.colors.gradientEnd]} style={styles.gradient}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.startCard}>
-              <Text style={styles.title}>Start Your "Investment Opportunity"</Text>
-              <Text style={styles.subtitle}>
+            <View style={[styles.startCard, { backgroundColor: theme.colors.surface }]}>
+              <Text style={[styles.title, { color: theme.colors.text }]}>Start Your "Investment Opportunity"</Text>
+              <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
                 Watch how a Ponzi scheme grows rapidly, pays early investors, then inevitably
                 collapses
               </Text>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Investment Amount (₹)</Text>
+                <Text style={[styles.label, { color: theme.colors.text }]}>Investment Amount (₹)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { 
+                    borderColor: theme.colors.border, 
+                    backgroundColor: theme.colors.card,
+                    color: theme.colors.text
+                  }]}
                   value={investmentAmount}
                   onChangeText={setInvestmentAmount}
                   keyboardType="numeric"
                   placeholder="500"
+                  placeholderTextColor={theme.colors.textSecondary}
                 />
               </View>
 
               <TouchableOpacity
-                style={styles.startButton}
+                style={[styles.startButton, { backgroundColor: theme.colors.primary }]}
                 onPress={() => setGameStarted(true)}>
                 <Text style={styles.startButtonText}>Launch the "Opportunity" 🚀</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.educationButton}
+                style={[styles.educationButton, { backgroundColor: theme.colors.success }]}
                 onPress={() => navigation.navigate('PonziEducation')}>
                 <Text style={styles.educationButtonText}>Learn About Ponzi Schemes</Text>
               </TouchableOpacity>
@@ -326,26 +334,26 @@ const PonziSimulation = ({ navigation }: any) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView style={styles.scrollView}>
-        <LinearGradient colors={['#f8fafc', '#e2e8f0']} style={styles.header}>
-          <Text style={styles.headerTitle}>Ponzi Scheme Simulator</Text>
-          <Text style={styles.headerSubtitle}>Educational Simulation</Text>
+        <LinearGradient colors={[theme.colors.background, theme.colors.card]} style={styles.header}>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Ponzi Scheme Simulator</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>Educational Simulation</Text>
         </LinearGradient>
 
         <View style={styles.content}>
           {/* Visual Tree Structure */}
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
             {renderInvestorTree()}
           </View>
 
           {/* Controls */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Scheme Controls</Text>
+          <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Scheme Controls</Text>
             {!simulation.isCollapsed && (
               <>
                 <TouchableOpacity
-                  style={[styles.button, styles.successButton]}
+                  style={[styles.button, { backgroundColor: theme.colors.success }]}
                   onPress={() => addInvestors(1)}>
                   <Text style={styles.buttonText}>
                     Add 1 Investor (₹{investmentAmount})
@@ -353,7 +361,7 @@ const PonziSimulation = ({ navigation }: any) => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.button, styles.successButton]}
+                  style={[styles.button, { backgroundColor: theme.colors.success }]}
                   onPress={() => addInvestors(3)}>
                   <Text style={styles.buttonText}>Add 3 Investors</Text>
                 </TouchableOpacity>
@@ -361,7 +369,7 @@ const PonziSimulation = ({ navigation }: any) => {
                 <TouchableOpacity
                   style={[
                     styles.button,
-                    autoRunning ? styles.destructiveButton : styles.primaryButton,
+                    { backgroundColor: autoRunning ? theme.colors.error : theme.colors.primary },
                   ]}
                   onPress={() => setAutoRunning(!autoRunning)}>
                   <Text style={styles.buttonText}>
@@ -372,28 +380,28 @@ const PonziSimulation = ({ navigation }: any) => {
             )}
 
             <TouchableOpacity
-              style={[styles.button, styles.outlineButton]}
+              style={[styles.button, { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border }]}
               onPress={resetSimulation}>
-              <Text style={[styles.buttonText, styles.outlineButtonText]}>
+              <Text style={[styles.buttonText, { color: theme.colors.text }]}>
                 Reset Simulation
               </Text>
             </TouchableOpacity>
 
             <View style={styles.statsContainer}>
               <View style={styles.statRow}>
-                <Text style={styles.statLabel}>Round:</Text>
-                <Text style={styles.statValue}>{simulation.currentRound}</Text>
+                <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Round:</Text>
+                <Text style={[styles.statValue, { color: theme.colors.text }]}>{simulation.currentRound}</Text>
               </View>
               <View style={styles.statRow}>
-                <Text style={styles.statLabel}>Total Investors:</Text>
-                <Text style={styles.statValue}>{simulation.investors.length}</Text>
+                <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Total Investors:</Text>
+                <Text style={[styles.statValue, { color: theme.colors.text }]}>{simulation.investors.length}</Text>
               </View>
               <View style={styles.statRow}>
-                <Text style={styles.statLabel}>Status:</Text>
+                <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Status:</Text>
                 <Text
                   style={[
                     styles.statValue,
-                    simulation.isCollapsed ? styles.collapsed : styles.running,
+                    { color: simulation.isCollapsed ? theme.colors.error : theme.colors.success },
                   ]}>
                   {simulation.isCollapsed ? 'COLLAPSED' : 'Running'}
                 </Text>
@@ -402,93 +410,93 @@ const PonziSimulation = ({ navigation }: any) => {
           </View>
 
           {/* Metrics */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Financial Metrics</Text>
+          <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Financial Metrics</Text>
             <View style={styles.metricsGrid}>
-              <View style={[styles.metricCard, styles.successMetric]}>
-                <Text style={styles.metricValue}>
+              <View style={[styles.metricCard, { backgroundColor: theme.colors.profit }]}>
+                <Text style={[styles.metricValue, { color: theme.colors.text }]}>
                   ₹{simulation.totalInvested.toLocaleString()}
                 </Text>
-                <Text style={styles.metricLabel}>Total Invested</Text>
+                <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]}>Total Invested</Text>
               </View>
-              <View style={[styles.metricCard, styles.primaryMetric]}>
-                <Text style={styles.metricValue}>
+              <View style={[styles.metricCard, { backgroundColor: theme.colors.card }]}>
+                <Text style={[styles.metricValue, { color: theme.colors.text }]}>
                   ₹{simulation.totalPaidOut.toLocaleString()}
                 </Text>
-                <Text style={styles.metricLabel}>Total Paid Out</Text>
+                <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]}>Total Paid Out</Text>
               </View>
             </View>
 
-            <View style={[styles.metricCard, styles.destructiveMetric]}>
-              <Text style={styles.deficitValue}>₹{deficit.toLocaleString()}</Text>
-              <Text style={styles.metricLabel}>Money Still Owed</Text>
-              <Text style={styles.deficitPercent}>
+            <View style={[styles.metricCard, { backgroundColor: theme.colors.loss }]}>
+              <Text style={[styles.deficitValue, { color: theme.colors.error }]}>₹{deficit.toLocaleString()}</Text>
+              <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]}>Money Still Owed</Text>
+              <Text style={[styles.deficitPercent, { color: theme.colors.error }]}>
                 {((deficit / simulation.totalInvested) * 100).toFixed(1)}% of investments
                 unpaid
               </Text>
             </View>
 
             <View style={styles.peopleGrid}>
-              <View style={[styles.peopleCard, styles.successMetric]}>
-                <Text style={styles.peopleValue}>{peopleInProfit}</Text>
-                <Text style={styles.peopleLabel}>In Profit</Text>
+              <View style={[styles.peopleCard, { backgroundColor: theme.colors.profit }]}>
+                <Text style={[styles.peopleValue, { color: theme.colors.text }]}>{peopleInProfit}</Text>
+                <Text style={[styles.peopleLabel, { color: theme.colors.textSecondary }]}>In Profit</Text>
               </View>
-              <View style={[styles.peopleCard, styles.destructiveMetric]}>
-                <Text style={styles.peopleValue}>{peopleInLoss}</Text>
-                <Text style={styles.peopleLabel}>Lost Money</Text>
+              <View style={[styles.peopleCard, { backgroundColor: theme.colors.loss }]}>
+                <Text style={[styles.peopleValue, { color: theme.colors.text }]}>{peopleInLoss}</Text>
+                <Text style={[styles.peopleLabel, { color: theme.colors.textSecondary }]}>Lost Money</Text>
               </View>
             </View>
           </View>
 
           {/* Collapse Alert */}
           {simulation.isCollapsed && (
-            <View style={styles.alertCard}>
-              <Text style={styles.alertTitle}>THE SCHEME HAS COLLAPSED!</Text>
-              <Text style={styles.alertText}>• New investors stopped joining</Text>
-              <Text style={styles.alertText}>• No money left to pay existing investors</Text>
-              <Text style={styles.alertText}>• {peopleInLoss} people lost their money</Text>
-              <Text style={styles.alertText}>• Only {peopleInProfit} early investors made profit</Text>
-              <Text style={styles.alertText}>
+            <View style={[styles.alertCard, { backgroundColor: theme.colors.loss, borderColor: theme.colors.error }]}>
+              <Text style={[styles.alertTitle, { color: theme.colors.error }]}>THE SCHEME HAS COLLAPSED!</Text>
+              <Text style={[styles.alertText, { color: theme.colors.error }]}>• New investors stopped joining</Text>
+              <Text style={[styles.alertText, { color: theme.colors.error }]}>• No money left to pay existing investors</Text>
+              <Text style={[styles.alertText, { color: theme.colors.error }]}>• {peopleInLoss} people lost their money</Text>
+              <Text style={[styles.alertText, { color: theme.colors.error }]}>• Only {peopleInProfit} early investors made profit</Text>
+              <Text style={[styles.alertText, { color: theme.colors.error }]}>
                 • ₹{deficit.toLocaleString()} in losses cannot be recovered
               </Text>
             </View>
           )}
 
           {/* Educational Section */}
-          <View style={styles.educationalCard}>
-            <Text style={styles.educationalTitle}>What This Simulation Shows</Text>
-            <View style={styles.lessonCard}>
-              <Text style={styles.lessonTitle}>📈 Unsustainable Growth</Text>
-              <Text style={styles.lessonText}>
+          <View style={[styles.educationalCard, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.educationalTitle, { color: theme.colors.text }]}>What This Simulation Shows</Text>
+            <View style={[styles.lessonCard, { backgroundColor: theme.colors.card }]}>
+              <Text style={[styles.lessonTitle, { color: theme.colors.text }]}>📈 Unsustainable Growth</Text>
+              <Text style={[styles.lessonText, { color: theme.colors.textSecondary }]}>
                 Ponzi schemes require exponential growth. Each round needs more investors than
                 the last.
               </Text>
             </View>
-            <View style={styles.lessonCard}>
-              <Text style={styles.lessonTitle}>👥 Most People Lose</Text>
-              <Text style={styles.lessonText}>
+            <View style={[styles.lessonCard, { backgroundColor: theme.colors.card }]}>
+              <Text style={[styles.lessonTitle, { color: theme.colors.text }]}>👥 Most People Lose</Text>
+              <Text style={[styles.lessonText, { color: theme.colors.textSecondary }]}>
                 Only early investors profit. The majority of participants lose their money.
               </Text>
             </View>
-            <View style={styles.lessonCard}>
-              <Text style={styles.lessonTitle}>⚡ Inevitable Collapse</Text>
-              <Text style={styles.lessonText}>
+            <View style={[styles.lessonCard, { backgroundColor: theme.colors.card }]}>
+              <Text style={[styles.lessonTitle, { color: theme.colors.text }]}>⚡ Inevitable Collapse</Text>
+              <Text style={[styles.lessonText, { color: theme.colors.textSecondary }]}>
                 All Ponzi schemes eventually collapse when new investors stop joining.
               </Text>
             </View>
 
-            <View style={styles.keyLessons}>
-              <Text style={styles.keyLessonsTitle}>Key Lessons:</Text>
-              <Text style={styles.keyLessonText}>
+            <View style={[styles.keyLessons, { backgroundColor: theme.colors.card }]}>
+              <Text style={[styles.keyLessonsTitle, { color: theme.colors.text }]}>Key Lessons:</Text>
+              <Text style={[styles.keyLessonText, { color: theme.colors.textSecondary }]}>
                 • Promises of guaranteed high returns are red flags
               </Text>
-              <Text style={styles.keyLessonText}>
+              <Text style={[styles.keyLessonText, { color: theme.colors.textSecondary }]}>
                 • Legitimate investments create value, not just move money around
               </Text>
-              <Text style={styles.keyLessonText}>
+              <Text style={[styles.keyLessonText, { color: theme.colors.textSecondary }]}>
                 • If it sounds too good to be true, it probably is
               </Text>
-              <Text style={styles.keyLessonText}>
+              <Text style={[styles.keyLessonText, { color: theme.colors.textSecondary }]}>
                 • Real wealth building takes time and carries appropriate risk
               </Text>
             </View>
@@ -502,7 +510,6 @@ const PonziSimulation = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   gradient: {
     flex: 1,
@@ -516,7 +523,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   startCard: {
-    backgroundColor: 'white',
     borderRadius: 12,
     padding: 24,
     shadowColor: '#000',
@@ -530,12 +536,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#1f2937',
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#6b7280',
     marginBottom: 24,
     lineHeight: 24,
   },
@@ -546,18 +550,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#374151',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#f9fafb',
   },
   startButton: {
-    backgroundColor: '#2563eb',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -569,7 +569,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   educationButton: {
-    backgroundColor: '#10b981',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -586,12 +585,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1f2937',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#6b7280',
   },
   content: {
     padding: 16,
@@ -604,12 +601,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 4,
-    color: '#1f2937',
   },
   treeSubtitle: {
     fontSize: 14,
     textAlign: 'center',
-    color: '#6b7280',
     marginBottom: 16,
   },
   treeScroll: {
@@ -628,7 +623,6 @@ const styles = StyleSheet.create({
   roundLabel: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#374151',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -637,25 +631,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   investorNode: {
-    backgroundColor: '#f3f4f6',
     borderRadius: 8,
     padding: 8,
     minWidth: 80,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#d1d5db',
-  },
-  profitNode: {
-    backgroundColor: '#dcfce7',
-    borderColor: '#22c55e',
-  },
-  lossNode: {
-    backgroundColor: '#fee2e2',
-    borderColor: '#ef4444',
-  },
-  breakEvenNode: {
-    backgroundColor: '#fef3c7',
-    borderColor: '#f59e0b',
   },
   collapsedNode: {
     opacity: 0.6,
@@ -664,28 +644,19 @@ const styles = StyleSheet.create({
   investorNodeText: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#1f2937',
   },
   investorAmount: {
     fontSize: 9,
-    color: '#6b7280',
   },
   investorProfit: {
     fontSize: 9,
     fontWeight: 'bold',
-  },
-  profitText: {
-    color: '#16a34a',
-  },
-  lossText: {
-    color: '#dc2626',
   },
   arrowContainer: {
     marginTop: 4,
   },
   arrow: {
     fontSize: 16,
-    color: '#6b7280',
   },
   moneyFlow: {
     marginTop: 8,
@@ -695,7 +666,6 @@ const styles = StyleSheet.create({
   },
   moneyFlowText: {
     fontSize: 8,
-    color: '#1e40af',
     textAlign: 'center',
   },
   treeLegend: {
@@ -718,10 +688,8 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 10,
-    color: '#6b7280',
   },
   card: {
-    backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -735,7 +703,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: '#1f2937',
   },
   button: {
     borderRadius: 8,
@@ -743,27 +710,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  successButton: {
-    backgroundColor: '#10b981',
-  },
-  primaryButton: {
-    backgroundColor: '#2563eb',
-  },
-  destructiveButton: {
-    backgroundColor: '#dc2626',
-  },
-  outlineButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-  },
   buttonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-  },
-  outlineButtonText: {
-    color: '#374151',
   },
   statsContainer: {
     marginTop: 16,
@@ -778,18 +728,10 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: '#6b7280',
   },
   statValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
-  },
-  collapsed: {
-    color: '#dc2626',
-  },
-  running: {
-    color: '#10b981',
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -803,35 +745,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 4,
   },
-  successMetric: {
-    backgroundColor: '#dcfce7',
-  },
-  primaryMetric: {
-    backgroundColor: '#dbeafe',
-  },
-  destructiveMetric: {
-    backgroundColor: '#fee2e2',
-    marginHorizontal: 0,
-    marginBottom: 16,
-  },
   metricValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1f2937',
   },
   metricLabel: {
     fontSize: 12,
-    color: '#6b7280',
     marginTop: 4,
   },
   deficitValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#dc2626',
   },
   deficitPercent: {
     fontSize: 12,
-    color: '#dc2626',
     marginTop: 4,
   },
   peopleGrid: {
@@ -848,34 +775,27 @@ const styles = StyleSheet.create({
   peopleValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1f2937',
   },
   peopleLabel: {
     fontSize: 10,
-    color: '#6b7280',
     marginTop: 2,
   },
   alertCard: {
-    backgroundColor: '#fee2e2',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#fecaca',
   },
   alertTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#dc2626',
     marginBottom: 12,
   },
   alertText: {
     fontSize: 14,
-    color: '#dc2626',
     marginBottom: 4,
   },
   educationalCard: {
-    backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -885,10 +805,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 16,
-    color: '#1f2937',
   },
   lessonCard: {
-    backgroundColor: '#f8fafc',
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
@@ -897,15 +815,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 8,
-    color: '#1f2937',
   },
   lessonText: {
     fontSize: 14,
-    color: '#6b7280',
     lineHeight: 20,
   },
   keyLessons: {
-    backgroundColor: '#f8fafc',
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
@@ -914,11 +829,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 8,
-    color: '#1f2937',
   },
   keyLessonText: {
     fontSize: 14,
-    color: '#6b7280',
     marginBottom: 4,
     lineHeight: 20,
   },

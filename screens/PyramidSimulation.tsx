@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface PyramidMember {
   id: number;
@@ -40,6 +41,7 @@ interface PyramidState {
 const { width } = Dimensions.get('window');
 
 const PyramidSimulation = ({ navigation }: any) => {
+  const { theme } = useTheme();
   const [simulation, setSimulation] = useState<PyramidState>({
     members: [
       {
@@ -358,23 +360,28 @@ const PyramidSimulation = ({ navigation }: any) => {
 
   if (!gameStarted) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <LinearGradient colors={['#7c3aed', '#ec4899']} style={styles.gradient}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.startCard}>
-              <Text style={styles.title}>Start Your "MLM Business"</Text>
-              <Text style={styles.subtitle}>
+            <View style={[styles.startCard, { backgroundColor: theme.colors.surface }]}>
+              <Text style={[styles.title, { color: theme.colors.text }]}>Start Your "MLM Business"</Text>
+              <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
                 Experience how pyramid schemes disguised as MLM businesses recruit members and inevitably collapse
               </Text>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Membership Fee (₹)</Text>
+                <Text style={[styles.label, { color: theme.colors.text }]}>Membership Fee (₹)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { 
+                    borderColor: theme.colors.border, 
+                    backgroundColor: theme.colors.card,
+                    color: theme.colors.text
+                  }]}
                   value={membershipFee}
                   onChangeText={setMembershipFee}
                   keyboardType="numeric"
                   placeholder="500"
+                  placeholderTextColor={theme.colors.textSecondary}
                 />
               </View>
 
@@ -403,26 +410,26 @@ const PyramidSimulation = ({ navigation }: any) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView style={styles.scrollView}>
-        <LinearGradient colors={['#f8fafc', '#e2e8f0']} style={styles.header}>
-          <Text style={styles.headerTitle}>Pyramid/MLM Simulator</Text>
-          <Text style={styles.headerSubtitle}>Educational Simulation</Text>
+        <LinearGradient colors={[theme.colors.background, theme.colors.card]} style={styles.header}>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Pyramid/MLM Simulator</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>Educational Simulation</Text>
         </LinearGradient>
 
         <View style={styles.content}>
           {/* Visual Pyramid Structure */}
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
             {renderPyramidTree()}
           </View>
 
           {/* Controls */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Business Controls</Text>
+          <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Business Controls</Text>
             {!simulation.isCollapsed && (
               <>
                 <TouchableOpacity
-                  style={[styles.button, styles.successButton]}
+                  style={[styles.button, { backgroundColor: theme.colors.success }]}
                   onPress={() => addMembers(1)}>
                   <Text style={styles.buttonText}>
                     Recruit 1 Member (₹{membershipFee})
@@ -430,7 +437,7 @@ const PyramidSimulation = ({ navigation }: any) => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.button, styles.successButton]}
+                  style={[styles.button, { backgroundColor: theme.colors.success }]}
                   onPress={() => addMembers(3)}>
                   <Text style={styles.buttonText}>Recruit 3 Members</Text>
                 </TouchableOpacity>
@@ -438,7 +445,7 @@ const PyramidSimulation = ({ navigation }: any) => {
                 <TouchableOpacity
                   style={[
                     styles.button,
-                    autoRunning ? styles.destructiveButton : styles.primaryButton,
+                    { backgroundColor: autoRunning ? theme.colors.error : '#7c3aed' },
                   ]}
                   onPress={() => setAutoRunning(!autoRunning)}>
                   <Text style={styles.buttonText}>
@@ -449,9 +456,9 @@ const PyramidSimulation = ({ navigation }: any) => {
             )}
 
             <TouchableOpacity
-              style={[styles.button, styles.outlineButton]}
+              style={[styles.button, { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border }]}
               onPress={resetSimulation}>
-              <Text style={[styles.buttonText, styles.outlineButtonText]}>
+              <Text style={[styles.buttonText, { color: theme.colors.text }]}>
                 Reset Simulation
               </Text>
             </TouchableOpacity>
@@ -479,16 +486,17 @@ const PyramidSimulation = ({ navigation }: any) => {
           </View>
 
           {/* Pyramid Structure */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Pyramid Structure</Text>
+          <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Pyramid Structure</Text>
             {Object.entries(levelCounts).map(([level, count]) => (
               <View key={level} style={styles.levelRow}>
-                <Text style={styles.levelLabel}>Level {level}:</Text>
-                <Text style={styles.levelCount}>{count} members</Text>
+                <Text style={[styles.levelLabel, { color: theme.colors.text }]}>Level {level}:</Text>
+                <Text style={[styles.levelCount, { color: theme.colors.textSecondary }]}>{count} members</Text>
                 <View style={styles.levelBar}>
                   <View 
                     style={[
-                      styles.levelBarFill, 
+                      styles.levelBarFill,
+                      { backgroundColor: '#7c3aed' },
                       { width: `${Math.min(100, (count / Math.max(...Object.values(levelCounts))) * 100)}%` }
                     ]} 
                   />
@@ -498,20 +506,20 @@ const PyramidSimulation = ({ navigation }: any) => {
           </View>
 
           {/* Financial Metrics */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Financial Metrics</Text>
+          <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Financial Metrics</Text>
             <View style={styles.metricsGrid}>
-              <View style={[styles.metricCard, styles.successMetric]}>
-                <Text style={styles.metricValue}>
+              <View style={[styles.metricCard, { backgroundColor: theme.colors.profit }]}>
+                <Text style={[styles.metricValue, { color: theme.colors.text }]}>
                   ₹{simulation.totalInvested.toLocaleString()}
                 </Text>
-                <Text style={styles.metricLabel}>Total Invested</Text>
+                <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]}>Total Invested</Text>
               </View>
-              <View style={[styles.metricCard, styles.primaryMetric]}>
-                <Text style={styles.metricValue}>
+              <View style={[styles.metricCard, { backgroundColor: theme.colors.card }]}>
+                <Text style={[styles.metricValue, { color: theme.colors.text }]}>
                   ₹{simulation.totalPaidOut.toLocaleString()}
                 </Text>
-                <Text style={styles.metricLabel}>Commissions Paid</Text>
+                <Text style={[styles.metricLabel, { color: theme.colors.textSecondary }]}>Commissions Paid</Text>
               </View>
             </View>
 
@@ -596,7 +604,6 @@ const PyramidSimulation = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   gradient: {
     flex: 1,

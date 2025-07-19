@@ -48,6 +48,7 @@ function AppContent() {
       </Stack.Navigator>
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
     </NavigationContainer>
+  )
   );
 }
 
