@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import PonziSimulation from './screens/PonziSimulation';
 import PonziEducation from './screens/PonziEducation';
+import PyramidSimulation from './screens/PyramidSimulation';
 
 const Stack = createStackNavigator();
 
@@ -27,6 +28,11 @@ export default function App() {
             name="PonziSimulation"
             component={PonziSimulation}
             options={{ title: 'Ponzi Scheme Simulator' }}
+          />
+          <Stack.Screen
+            name="PyramidSimulation"
+            component={PyramidSimulation}
+            options={{ title: 'Pyramid/MLM Simulator' }}
           />
           <Stack.Screen
             name="PonziEducation"

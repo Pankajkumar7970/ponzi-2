@@ -12,121 +12,165 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
-interface Investor {
+interface PyramidMember {
   id: number;
   name: string;
-  investment: number;
+  level: number;
+  recruiter: number | null;
   recruits: number[];
+  investment: number;
   totalEarned: number;
   netProfit: number;
   joinedRound: number;
-  level: number;
+  isActive: boolean;
 }
 
-interface SimulationState {
-  investors: Investor[];
+interface PyramidState {
+  members: PyramidMember[];
   totalInvested: number;
   totalPaidOut: number;
   currentRound: number;
   isCollapsed: boolean;
-  newInvestorsPerRound: number;
-  payoutRate: number;
+  membershipFee: number;
+  commissionRate: number;
+  levelsDeep: number;
 }
 
 const { width } = Dimensions.get('window');
 
-const PonziSimulation = ({ navigation }: any) => {
-  const [simulation, setSimulation] = useState<SimulationState>({
-    investors: [
+const PyramidSimulation = ({ navigation }: any) => {
+  const [simulation, setSimulation] = useState<PyramidState>({
+    members: [
       {
         id: 1,
         name: 'Founder (You)',
-        investment: 1000,
-        recruits: [],
-        totalEarned: 0,
-        netProfit: -1000,
-        joinedRound: 0,
         level: 0,
+        recruiter: null,
+        recruits: [],
+        investment: 500,
+        totalEarned: 0,
+        netProfit: -500,
+        joinedRound: 0,
+        isActive: true,
       },
     ],
-    totalInvested: 1000,
+    totalInvested: 500,
     totalPaidOut: 0,
     currentRound: 0,
     isCollapsed: false,
-    newInvestorsPerRound: 2,
-    payoutRate: 0.2,
+    membershipFee: 500,
+    commissionRate: 0.3,
+    levelsDeep: 3,
   });
 
-  const [investmentAmount, setInvestmentAmount] = useState('500');
+  const [membershipFee, setMembershipFee] = useState('500');
   const [autoRunning, setAutoRunning] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
 
-  const addInvestors = useCallback(
-    (count: number) => {
-      if (simulation.isCollapsed) return;
+  const calculateCommissions = useCallback((newMemberId: number, fee: number) => {
+    const newMember = simulation.members.find(m => m.id === newMemberId);
+    if (!newMember || !newMember.recruiter) return [];
 
-      setSimulation(prev => {
-        const newInvestors: Investor[] = [];
-        const currentLevel = Math.floor(Math.log2(prev.investors.length + count)) + 1;
+    const commissions: { memberId: number; amount: number; level: number }[] = [];
+    let currentRecruiterId = newMember.recruiter;
+    let level = 1;
 
-        for (let i = 0; i < count; i++) {
-          const newInvestor: Investor = {
-            id: prev.investors.length + i + 1,
-            name: `Investor ${prev.investors.length + i + 1}`,
-            investment: parseInt(investmentAmount),
-            recruits: [],
-            totalEarned: 0,
-            netProfit: -parseInt(investmentAmount),
-            joinedRound: prev.currentRound + 1,
-            level: currentLevel,
-          };
-          newInvestors.push(newInvestor);
-        }
+    while (currentRecruiterId && level <= simulation.levelsDeep) {
+      const recruiter = simulation.members.find(m => m.id === currentRecruiterId);
+      if (!recruiter || !recruiter.isActive) break;
 
-        const totalNewMoney = count * parseInt(investmentAmount);
-        const availableForPayouts = totalNewMoney * 0.8;
-
-        const updatedInvestors = [...prev.investors];
-        let remainingPayout = availableForPayouts;
-
-        for (let i = 0; i < updatedInvestors.length && remainingPayout > 0; i++) {
-          const payout = Math.min(
-            remainingPayout,
-            updatedInvestors[i].investment * prev.payoutRate,
-          );
-          updatedInvestors[i].totalEarned += payout;
-          updatedInvestors[i].netProfit += payout;
-          remainingPayout -= payout;
-        }
-
-        return {
-          ...prev,
-          investors: [...updatedInvestors, ...newInvestors],
-          totalInvested: prev.totalInvested + totalNewMoney,
-          totalPaidOut: prev.totalPaidOut + (availableForPayouts - remainingPayout),
-          currentRound: prev.currentRound + 1,
-        };
+      const commissionAmount = fee * simulation.commissionRate * (1 / level); // Decreasing commission per level
+      commissions.push({
+        memberId: currentRecruiterId,
+        amount: commissionAmount,
+        level: level,
       });
-    },
-    [investmentAmount, simulation.isCollapsed],
-  );
+
+      currentRecruiterId = recruiter.recruiter;
+      level++;
+    }
+
+    return commissions;
+  }, [simulation.members, simulation.levelsDeep, simulation.commissionRate]);
+
+  const addMembers = useCallback((count: number) => {
+    if (simulation.isCollapsed) return;
+
+    setSimulation(prev => {
+      const newMembers: PyramidMember[] = [];
+      const updatedMembers = [...prev.members];
+      let totalCommissionsPaid = 0;
+
+      // Find potential recruiters (active members)
+      const activeMembers = updatedMembers.filter(m => m.isActive);
+      
+      for (let i = 0; i < count; i++) {
+        // Randomly assign to an active member as recruiter
+        const recruiterIndex = Math.floor(Math.random() * activeMembers.length);
+        const recruiter = activeMembers[recruiterIndex];
+
+        const newMember: PyramidMember = {
+          id: prev.members.length + i + 1,
+          name: `Member ${prev.members.length + i + 1}`,
+          level: recruiter.level + 1,
+          recruiter: recruiter.id,
+          recruits: [],
+          investment: parseInt(membershipFee),
+          totalEarned: 0,
+          netProfit: -parseInt(membershipFee),
+          joinedRound: prev.currentRound + 1,
+          isActive: true,
+        };
+
+        newMembers.push(newMember);
+
+        // Add to recruiter's recruits list
+        const recruiterInUpdated = updatedMembers.find(m => m.id === recruiter.id);
+        if (recruiterInUpdated) {
+          recruiterInUpdated.recruits.push(newMember.id);
+        }
+
+        // Calculate and distribute commissions
+        const commissions = calculateCommissions(newMember.id, parseInt(membershipFee));
+        commissions.forEach(commission => {
+          const member = updatedMembers.find(m => m.id === commission.memberId);
+          if (member) {
+            member.totalEarned += commission.amount;
+            member.netProfit += commission.amount;
+            totalCommissionsPaid += commission.amount;
+          }
+        });
+      }
+
+      return {
+        ...prev,
+        members: [...updatedMembers, ...newMembers],
+        totalInvested: prev.totalInvested + (count * parseInt(membershipFee)),
+        totalPaidOut: prev.totalPaidOut + totalCommissionsPaid,
+        currentRound: prev.currentRound + 1,
+      };
+    });
+  }, [membershipFee, simulation.isCollapsed, calculateCommissions]);
 
   useEffect(() => {
     const checkCollapse = () => {
-      const recentInvestors = simulation.investors.filter(
-        inv => inv.joinedRound >= simulation.currentRound - 2,
+      const recentMembers = simulation.members.filter(
+        m => m.joinedRound >= simulation.currentRound - 2
       ).length;
 
-      const growthRate = recentInvestors / Math.max(1, simulation.investors.length * 0.3);
+      const totalMembers = simulation.members.length;
+      const membersInProfit = simulation.members.filter(m => m.netProfit > 0).length;
+      const saturationRate = membersInProfit / totalMembers;
 
-      if (simulation.currentRound > 5 && (growthRate < 0.1 || Math.random() < 0.15)) {
+      // Pyramid collapses when recruitment slows or market saturates
+      if (simulation.currentRound > 4 && (recentMembers < 2 || saturationRate < 0.1 || Math.random() < 0.12)) {
         setSimulation(prev => ({ ...prev, isCollapsed: true }));
         setAutoRunning(false);
+        
+        const losers = simulation.members.filter(m => m.netProfit < 0).length;
         Alert.alert(
-          'SCHEME COLLAPSED!',
-          `The Ponzi scheme has collapsed! ${
-            simulation.investors.filter(inv => inv.netProfit < 0).length
-          } people lost their money.`,
+          'PYRAMID COLLAPSED!',
+          `The pyramid scheme has collapsed! ${losers} people lost their money. Only those at the top made profits.`
         );
       }
     };
@@ -134,69 +178,79 @@ const PonziSimulation = ({ navigation }: any) => {
     if (simulation.currentRound > 3 && !simulation.isCollapsed) {
       checkCollapse();
     }
-  }, [simulation.currentRound, simulation.investors.length, simulation.isCollapsed]);
+  }, [simulation.currentRound, simulation.members.length, simulation.isCollapsed]);
 
   useEffect(() => {
     if (autoRunning && !simulation.isCollapsed) {
       const interval = setInterval(() => {
-        const newCount = Math.max(
-          1,
-          Math.floor(Math.random() * simulation.newInvestorsPerRound) + 1,
-        );
-        addInvestors(newCount);
-      }, 2000);
+        // Simulate decreasing recruitment over time
+        const baseRecruits = Math.max(1, 5 - Math.floor(simulation.currentRound / 2));
+        const newCount = Math.floor(Math.random() * baseRecruits) + 1;
+        addMembers(newCount);
+      }, 2500);
 
       return () => clearInterval(interval);
     }
-  }, [autoRunning, simulation.isCollapsed, addInvestors, simulation.newInvestorsPerRound]);
+  }, [autoRunning, simulation.isCollapsed, addMembers, simulation.currentRound]);
 
   const resetSimulation = () => {
     setSimulation({
-      investors: [
+      members: [
         {
           id: 1,
           name: 'Founder (You)',
-          investment: 1000,
-          recruits: [],
-          totalEarned: 0,
-          netProfit: -1000,
-          joinedRound: 0,
           level: 0,
+          recruiter: null,
+          recruits: [],
+          investment: 500,
+          totalEarned: 0,
+          netProfit: -500,
+          joinedRound: 0,
+          isActive: true,
         },
       ],
-      totalInvested: 1000,
+      totalInvested: 500,
       totalPaidOut: 0,
       currentRound: 0,
       isCollapsed: false,
-      newInvestorsPerRound: 2,
-      payoutRate: 0.2,
+      membershipFee: 500,
+      commissionRate: 0.3,
+      levelsDeep: 3,
     });
     setAutoRunning(false);
     setGameStarted(false);
   };
 
+  const getLevelCounts = () => {
+    const levelCounts: { [key: number]: number } = {};
+    simulation.members.forEach(member => {
+      levelCounts[member.level] = (levelCounts[member.level] || 0) + 1;
+    });
+    return levelCounts;
+  };
+
   const deficit = simulation.totalInvested - simulation.totalPaidOut;
-  const peopleInProfit = simulation.investors.filter(inv => inv.netProfit > 0).length;
-  const peopleInLoss = simulation.investors.filter(inv => inv.netProfit < 0).length;
+  const peopleInProfit = simulation.members.filter(m => m.netProfit > 0).length;
+  const peopleInLoss = simulation.members.filter(m => m.netProfit < 0).length;
+  const levelCounts = getLevelCounts();
 
   if (!gameStarted) {
     return (
       <SafeAreaView style={styles.container}>
-        <LinearGradient colors={['#2563eb', '#10b981']} style={styles.gradient}>
+        <LinearGradient colors={['#7c3aed', '#ec4899']} style={styles.gradient}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.startCard}>
-              <Text style={styles.title}>Start Your "Investment Opportunity"</Text>
+              <Text style={styles.title}>Start Your "MLM Business"</Text>
               <Text style={styles.subtitle}>
-                Watch how a Ponzi scheme grows rapidly, pays early investors, then inevitably
-                collapses
+                Experience how pyramid schemes disguised as MLM businesses recruit members and inevitably collapse
               </Text>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Investment Amount (₹)</Text>
+                <Text style={styles.label}>Membership Fee (₹)</Text>
                 <TextInput
                   style={styles.input}
-                  value={investmentAmount}
-                  onChangeText={setInvestmentAmount}
+                  value={membershipFee}
+                  onChangeText={setMembershipFee}
                   keyboardType="numeric"
                   placeholder="500"
                 />
@@ -205,19 +259,19 @@ const PonziSimulation = ({ navigation }: any) => {
               <TouchableOpacity
                 style={styles.startButton}
                 onPress={() => setGameStarted(true)}>
-                <Text style={styles.startButtonText}>Launch the "Opportunity" 🚀</Text>
+                <Text style={styles.startButtonText}>Launch the "Business" 🏢</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.educationButton}
                 onPress={() => navigation.navigate('PonziEducation')}>
-                <Text style={styles.educationButtonText}>Learn About Ponzi Schemes</Text>
+                <Text style={styles.educationButtonText}>Learn About MLM Scams</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.educationButton, { backgroundColor: '#7c3aed', marginTop: 12 }]}
-                onPress={() => navigation.navigate('PyramidSimulation')}>
-                <Text style={styles.educationButtonText}>Try Pyramid/MLM Simulator</Text>
+                style={[styles.educationButton, { backgroundColor: '#2563eb', marginTop: 12 }]}
+                onPress={() => navigation.navigate('PonziSimulation')}>
+                <Text style={styles.educationButtonText}>Try Ponzi Simulator</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -230,28 +284,28 @@ const PonziSimulation = ({ navigation }: any) => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <LinearGradient colors={['#f8fafc', '#e2e8f0']} style={styles.header}>
-          <Text style={styles.headerTitle}>Ponzi Scheme Simulator</Text>
+          <Text style={styles.headerTitle}>Pyramid/MLM Simulator</Text>
           <Text style={styles.headerSubtitle}>Educational Simulation</Text>
         </LinearGradient>
 
         <View style={styles.content}>
           {/* Controls */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Scheme Controls</Text>
+            <Text style={styles.cardTitle}>Business Controls</Text>
             {!simulation.isCollapsed && (
               <>
                 <TouchableOpacity
                   style={[styles.button, styles.successButton]}
-                  onPress={() => addInvestors(1)}>
+                  onPress={() => addMembers(1)}>
                   <Text style={styles.buttonText}>
-                    Add 1 Investor (₹{investmentAmount})
+                    Recruit 1 Member (₹{membershipFee})
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[styles.button, styles.successButton]}
-                  onPress={() => addInvestors(3)}>
-                  <Text style={styles.buttonText}>Add 3 Investors</Text>
+                  onPress={() => addMembers(3)}>
+                  <Text style={styles.buttonText}>Recruit 3 Members</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -261,7 +315,7 @@ const PonziSimulation = ({ navigation }: any) => {
                   ]}
                   onPress={() => setAutoRunning(!autoRunning)}>
                   <Text style={styles.buttonText}>
-                    {autoRunning ? 'Stop Auto-Run' : 'Start Auto-Run'}
+                    {autoRunning ? 'Stop Auto-Recruit' : 'Start Auto-Recruit'}
                   </Text>
                 </TouchableOpacity>
               </>
@@ -281,8 +335,8 @@ const PonziSimulation = ({ navigation }: any) => {
                 <Text style={styles.statValue}>{simulation.currentRound}</Text>
               </View>
               <View style={styles.statRow}>
-                <Text style={styles.statLabel}>Total Investors:</Text>
-                <Text style={styles.statValue}>{simulation.investors.length}</Text>
+                <Text style={styles.statLabel}>Total Members:</Text>
+                <Text style={styles.statValue}>{simulation.members.length}</Text>
               </View>
               <View style={styles.statRow}>
                 <Text style={styles.statLabel}>Status:</Text>
@@ -297,7 +351,26 @@ const PonziSimulation = ({ navigation }: any) => {
             </View>
           </View>
 
-          {/* Metrics */}
+          {/* Pyramid Structure */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Pyramid Structure</Text>
+            {Object.entries(levelCounts).map(([level, count]) => (
+              <View key={level} style={styles.levelRow}>
+                <Text style={styles.levelLabel}>Level {level}:</Text>
+                <Text style={styles.levelCount}>{count} members</Text>
+                <View style={styles.levelBar}>
+                  <View 
+                    style={[
+                      styles.levelBarFill, 
+                      { width: `${Math.min(100, (count / Math.max(...Object.values(levelCounts))) * 100)}%` }
+                    ]} 
+                  />
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* Financial Metrics */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Financial Metrics</Text>
             <View style={styles.metricsGrid}>
@@ -311,23 +384,22 @@ const PonziSimulation = ({ navigation }: any) => {
                 <Text style={styles.metricValue}>
                   ₹{simulation.totalPaidOut.toLocaleString()}
                 </Text>
-                <Text style={styles.metricLabel}>Total Paid Out</Text>
+                <Text style={styles.metricLabel}>Commissions Paid</Text>
               </View>
             </View>
 
             <View style={[styles.metricCard, styles.destructiveMetric]}>
               <Text style={styles.deficitValue}>₹{deficit.toLocaleString()}</Text>
-              <Text style={styles.metricLabel}>Money Still Owed</Text>
+              <Text style={styles.metricLabel}>Money Lost by Members</Text>
               <Text style={styles.deficitPercent}>
-                {((deficit / simulation.totalInvested) * 100).toFixed(1)}% of investments
-                unpaid
+                {((deficit / simulation.totalInvested) * 100).toFixed(1)}% of investments lost
               </Text>
             </View>
 
             <View style={styles.peopleGrid}>
               <View style={[styles.peopleCard, styles.successMetric]}>
                 <Text style={styles.peopleValue}>{peopleInProfit}</Text>
-                <Text style={styles.peopleLabel}>In Profit</Text>
+                <Text style={styles.peopleLabel}>Making Money</Text>
               </View>
               <View style={[styles.peopleCard, styles.destructiveMetric]}>
                 <Text style={styles.peopleValue}>{peopleInLoss}</Text>
@@ -339,53 +411,52 @@ const PonziSimulation = ({ navigation }: any) => {
           {/* Collapse Alert */}
           {simulation.isCollapsed && (
             <View style={styles.alertCard}>
-              <Text style={styles.alertTitle}>THE SCHEME HAS COLLAPSED!</Text>
-              <Text style={styles.alertText}>• New investors stopped joining</Text>
-              <Text style={styles.alertText}>• No money left to pay existing investors</Text>
+              <Text style={styles.alertTitle}>THE PYRAMID HAS COLLAPSED!</Text>
+              <Text style={styles.alertText}>• Recruitment slowed down dramatically</Text>
+              <Text style={styles.alertText}>• Market became saturated</Text>
               <Text style={styles.alertText}>• {peopleInLoss} people lost their money</Text>
-              <Text style={styles.alertText}>• Only {peopleInProfit} early investors made profit</Text>
+              <Text style={styles.alertText}>• Only {peopleInProfit} top-level members made profit</Text>
               <Text style={styles.alertText}>
-                • ₹{deficit.toLocaleString()} in losses cannot be recovered
+                • ₹{deficit.toLocaleString()} in total losses
               </Text>
             </View>
           )}
 
           {/* Educational Section */}
           <View style={styles.educationalCard}>
-            <Text style={styles.educationalTitle}>What This Simulation Shows</Text>
+            <Text style={styles.educationalTitle}>How Pyramid/MLM Schemes Work</Text>
+            <View style={styles.lessonCard}>
+              <Text style={styles.lessonTitle}>🏢 Disguised as Business</Text>
+              <Text style={styles.lessonText}>
+                They claim to sell products but focus on recruiting new members who pay fees.
+              </Text>
+            </View>
+            <View style={styles.lessonCard}>
+              <Text style={styles.lessonTitle}>💰 Commission Structure</Text>
+              <Text style={styles.lessonText}>
+                Members earn commissions from recruiting others, creating a pyramid structure.
+              </Text>
+            </View>
             <View style={styles.lessonCard}>
               <Text style={styles.lessonTitle}>📈 Unsustainable Growth</Text>
               <Text style={styles.lessonText}>
-                Ponzi schemes require exponential growth. Each round needs more investors than
-                the last.
-              </Text>
-            </View>
-            <View style={styles.lessonCard}>
-              <Text style={styles.lessonTitle}>👥 Most People Lose</Text>
-              <Text style={styles.lessonText}>
-                Only early investors profit. The majority of participants lose their money.
-              </Text>
-            </View>
-            <View style={styles.lessonCard}>
-              <Text style={styles.lessonTitle}>⚡ Inevitable Collapse</Text>
-              <Text style={styles.lessonText}>
-                All Ponzi schemes eventually collapse when new investors stop joining.
+                Requires exponential recruitment. Eventually runs out of new people to recruit.
               </Text>
             </View>
 
             <View style={styles.keyLessons}>
-              <Text style={styles.keyLessonsTitle}>Key Lessons:</Text>
+              <Text style={styles.keyLessonsTitle}>Warning Signs:</Text>
               <Text style={styles.keyLessonText}>
-                • Promises of guaranteed high returns are red flags
+                • Focus on recruiting rather than selling products
               </Text>
               <Text style={styles.keyLessonText}>
-                • Legitimate investments create value, not just move money around
+                • High upfront fees or "starter packages"
               </Text>
               <Text style={styles.keyLessonText}>
-                • If it sounds too good to be true, it probably is
+                • Promises of easy money through recruitment
               </Text>
               <Text style={styles.keyLessonText}>
-                • Real wealth building takes time and carries appropriate risk
+                • Complex commission structures favoring top levels
               </Text>
             </View>
           </View>
@@ -453,7 +524,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
   },
   startButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#7c3aed',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -465,7 +536,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   educationButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#ec4899',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -519,7 +590,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10b981',
   },
   primaryButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#7c3aed',
   },
   destructiveButton: {
     backgroundColor: '#dc2626',
@@ -562,6 +633,34 @@ const styles = StyleSheet.create({
   },
   running: {
     color: '#10b981',
+  },
+  levelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  levelLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    width: 70,
+  },
+  levelCount: {
+    fontSize: 14,
+    color: '#6b7280',
+    width: 80,
+  },
+  levelBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  levelBarFill: {
+    height: '100%',
+    backgroundColor: '#7c3aed',
+    borderRadius: 4,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -696,4 +795,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PonziSimulation;
+export default PyramidSimulation;
