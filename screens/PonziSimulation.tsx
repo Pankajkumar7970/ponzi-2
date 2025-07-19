@@ -21,6 +21,7 @@ interface Investor {
   netProfit: number;
   joinedRound: number;
   level: number;
+  status: 'profit' | 'loss' | 'break-even';
 }
 
 interface SimulationState {
@@ -47,6 +48,7 @@ const PonziSimulation = ({ navigation }: any) => {
         netProfit: -1000,
         joinedRound: 0,
         level: 0,
+        status: 'loss',
       },
     ],
     totalInvested: 1000,
@@ -61,6 +63,101 @@ const PonziSimulation = ({ navigation }: any) => {
   const [autoRunning, setAutoRunning] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
 
+  const updateInvestorStatus = (investor: Investor): Investor => {
+    let status: 'profit' | 'loss' | 'break-even' = 'loss';
+    if (investor.netProfit > 0) status = 'profit';
+    else if (investor.netProfit === 0) status = 'break-even';
+    return { ...investor, status };
+  };
+
+  const renderInvestorTree = () => {
+    const rounds = Math.max(1, simulation.currentRound + 1);
+    const investorsPerRound: { [key: number]: Investor[] } = {};
+    
+    simulation.investors.forEach(investor => {
+      const round = investor.joinedRound;
+      if (!investorsPerRound[round]) investorsPerRound[round] = [];
+      investorsPerRound[round].push(updateInvestorStatus(investor));
+    });
+
+    return (
+      <View style={styles.treeContainer}>
+        <Text style={styles.treeTitle}>Investor Flow Chart</Text>
+        <Text style={styles.treeSubtitle}>How money flows from new to old investors</Text>
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.treeScroll}>
+          <View style={styles.treeContent}>
+            {Array.from({ length: rounds }, (_, roundIndex) => {
+              const roundInvestors = investorsPerRound[roundIndex] || [];
+              return (
+                <View key={roundIndex} style={styles.roundColumn}>
+                  <Text style={styles.roundLabel}>
+                    {roundIndex === 0 ? 'Start' : `Round ${roundIndex}`}
+                  </Text>
+                  
+                  {roundInvestors.map((investor, index) => (
+                    <View key={investor.id} style={styles.investorNodeContainer}>
+                      <View style={[
+                        styles.investorNode,
+                        investor.status === 'profit' && styles.profitNode,
+                        investor.status === 'loss' && styles.lossNode,
+                        investor.status === 'break-even' && styles.breakEvenNode,
+                        simulation.isCollapsed && styles.collapsedNode,
+                      ]}>
+                        <Text style={styles.investorNodeText}>
+                          {investor.id === 1 ? 'YOU' : `#${investor.id}`}
+                        </Text>
+                        <Text style={styles.investorAmount}>
+                          ₹{investor.investment}
+                        </Text>
+                        <Text style={[
+                          styles.investorProfit,
+                          investor.netProfit >= 0 ? styles.profitText : styles.lossText
+                        ]}>
+                          {investor.netProfit >= 0 ? '+' : ''}₹{investor.netProfit}
+                        </Text>
+                      </View>
+                      
+                      {/* Arrow to next round */}
+                      {roundIndex < rounds - 1 && (
+                        <View style={styles.arrowContainer}>
+                          <Text style={styles.arrow}>→</Text>
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                  
+                  {/* Money flow indicator */}
+                  {roundIndex > 0 && (
+                    <View style={styles.moneyFlow}>
+                      <Text style={styles.moneyFlowText}>
+                        💰 Pays earlier investors
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </ScrollView>
+        
+        <View style={styles.treeLegend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, styles.profitNode]} />
+            <Text style={styles.legendText}>Making Profit</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, styles.lossNode]} />
+            <Text style={styles.legendText}>Lost Money</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, styles.breakEvenNode]} />
+            <Text style={styles.legendText}>Break Even</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
   const addInvestors = useCallback(
     (count: number) => {
       if (simulation.isCollapsed) return;
@@ -79,6 +176,7 @@ const PonziSimulation = ({ navigation }: any) => {
             netProfit: -parseInt(investmentAmount),
             joinedRound: prev.currentRound + 1,
             level: currentLevel,
+            status: 'loss',
           };
           newInvestors.push(newInvestor);
         }
@@ -162,6 +260,7 @@ const PonziSimulation = ({ navigation }: any) => {
           netProfit: -1000,
           joinedRound: 0,
           level: 0,
+          status: 'loss',
         },
       ],
       totalInvested: 1000,
@@ -235,6 +334,11 @@ const PonziSimulation = ({ navigation }: any) => {
         </LinearGradient>
 
         <View style={styles.content}>
+          {/* Visual Tree Structure */}
+          <View style={styles.card}>
+            {renderInvestorTree()}
+          </View>
+
           {/* Controls */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Scheme Controls</Text>
@@ -491,6 +595,130 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+  },
+  treeContainer: {
+    marginBottom: 16,
+  },
+  treeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 4,
+    color: '#1f2937',
+  },
+  treeSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#6b7280',
+    marginBottom: 16,
+  },
+  treeScroll: {
+    marginBottom: 16,
+  },
+  treeContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 8,
+  },
+  roundColumn: {
+    alignItems: 'center',
+    marginHorizontal: 8,
+    minWidth: 100,
+  },
+  roundLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  investorNodeContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  investorNode: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    padding: 8,
+    minWidth: 80,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+  },
+  profitNode: {
+    backgroundColor: '#dcfce7',
+    borderColor: '#22c55e',
+  },
+  lossNode: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#ef4444',
+  },
+  breakEvenNode: {
+    backgroundColor: '#fef3c7',
+    borderColor: '#f59e0b',
+  },
+  collapsedNode: {
+    opacity: 0.6,
+    borderStyle: 'dashed',
+  },
+  investorNodeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  investorAmount: {
+    fontSize: 9,
+    color: '#6b7280',
+  },
+  investorProfit: {
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  profitText: {
+    color: '#16a34a',
+  },
+  lossText: {
+    color: '#dc2626',
+  },
+  arrowContainer: {
+    marginTop: 4,
+  },
+  arrow: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
+  moneyFlow: {
+    marginTop: 8,
+    backgroundColor: '#dbeafe',
+    borderRadius: 4,
+    padding: 4,
+  },
+  moneyFlowText: {
+    fontSize: 8,
+    color: '#1e40af',
+    textAlign: 'center',
+  },
+  treeLegend: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 4,
+    borderWidth: 1,
+  },
+  legendText: {
+    fontSize: 10,
+    color: '#6b7280',
   },
   card: {
     backgroundColor: 'white',
