@@ -23,6 +23,7 @@ interface PyramidMember {
   netProfit: number;
   joinedRound: number;
   isActive: boolean;
+  status: 'profit' | 'loss' | 'break-even';
 }
 
 interface PyramidState {
@@ -52,6 +53,7 @@ const PyramidSimulation = ({ navigation }: any) => {
         netProfit: -500,
         joinedRound: 0,
         isActive: true,
+        status: 'loss',
       },
     ],
     totalInvested: 500,
@@ -66,6 +68,124 @@ const PyramidSimulation = ({ navigation }: any) => {
   const [membershipFee, setMembershipFee] = useState('500');
   const [autoRunning, setAutoRunning] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+
+  const updateMemberStatus = (member: PyramidMember): PyramidMember => {
+    let status: 'profit' | 'loss' | 'break-even' = 'loss';
+    if (member.netProfit > 0) status = 'profit';
+    else if (member.netProfit === 0) status = 'break-even';
+    return { ...member, status };
+  };
+
+  const renderPyramidTree = () => {
+    const maxLevel = Math.max(...simulation.members.map(m => m.level));
+    const membersByLevel: { [key: number]: PyramidMember[] } = {};
+    
+    simulation.members.forEach(member => {
+      const level = member.level;
+      if (!membersByLevel[level]) membersByLevel[level] = [];
+      membersByLevel[level].push(updateMemberStatus(member));
+    });
+
+    const renderMemberNode = (member: PyramidMember, isCollapsed: boolean) => (
+      <View key={member.id} style={styles.memberNodeContainer}>
+        <View style={[
+          styles.memberNode,
+          member.status === 'profit' && styles.profitNode,
+          member.status === 'loss' && styles.lossNode,
+          member.status === 'break-even' && styles.breakEvenNode,
+          isCollapsed && styles.collapsedNode,
+        ]}>
+          <Text style={styles.memberNodeText}>
+            {member.id === 1 ? 'YOU' : `#${member.id}`}
+          </Text>
+          <Text style={styles.memberAmount}>₹{member.investment}</Text>
+          <Text style={[
+            styles.memberProfit,
+            member.netProfit >= 0 ? styles.profitText : styles.lossText
+          ]}>
+            {member.netProfit >= 0 ? '+' : ''}₹{member.netProfit}
+          </Text>
+          <Text style={styles.memberRecruits}>
+            👥 {member.recruits.length}
+          </Text>
+        </View>
+        
+        {/* Connection lines to recruits */}
+        {member.recruits.length > 0 && (
+          <View style={styles.connectionLine} />
+        )}
+      </View>
+    );
+
+    return (
+      <View style={styles.pyramidContainer}>
+        <Text style={styles.pyramidTitle}>Pyramid Structure</Text>
+        <Text style={styles.pyramidSubtitle}>How recruitment creates the pyramid</Text>
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pyramidScroll}>
+          <View style={styles.pyramidContent}>
+            {Array.from({ length: maxLevel + 1 }, (_, levelIndex) => {
+              const levelMembers = membersByLevel[levelIndex] || [];
+              const membersPerRow = Math.ceil(Math.sqrt(levelMembers.length));
+              
+              return (
+                <View key={levelIndex} style={styles.pyramidLevel}>
+                  <Text style={styles.levelLabel}>
+                    Level {levelIndex} {levelIndex === 0 ? '(Top)' : ''}
+                  </Text>
+                  
+                  <View style={styles.levelMembersContainer}>
+                    {levelMembers.map(member => 
+                      renderMemberNode(member, simulation.isCollapsed)
+                    )}
+                  </View>
+                  
+                  {/* Commission flow indicator */}
+                  {levelIndex > 0 && (
+                    <View style={styles.commissionFlow}>
+                      <Text style={styles.commissionFlowText}>
+                        💰 Pays commissions upward
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {/* Arrow to next level */}
+                  {levelIndex < maxLevel && (
+                    <View style={styles.levelArrow}>
+                      <Text style={styles.arrowDown}>↓</Text>
+                      <Text style={styles.arrowText}>Recruits</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </ScrollView>
+        
+        <View style={styles.pyramidLegend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, styles.profitNode]} />
+            <Text style={styles.legendText}>Making Money</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, styles.lossNode]} />
+            <Text style={styles.legendText}>Lost Money</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, styles.breakEvenNode]} />
+            <Text style={styles.legendText}>Break Even</Text>
+          </View>
+        </View>
+        
+        {simulation.isCollapsed && (
+          <View style={styles.collapseIndicator}>
+            <Text style={styles.collapseText}>💥 PYRAMID COLLAPSED</Text>
+            <Text style={styles.collapseSubtext}>No new recruits joining</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const calculateCommissions = useCallback((newMemberId: number, fee: number) => {
     const newMember = simulation.members.find(m => m.id === newMemberId);
@@ -120,6 +240,7 @@ const PyramidSimulation = ({ navigation }: any) => {
           netProfit: -parseInt(membershipFee),
           joinedRound: prev.currentRound + 1,
           isActive: true,
+          status: 'loss',
         };
 
         newMembers.push(newMember);
@@ -207,6 +328,7 @@ const PyramidSimulation = ({ navigation }: any) => {
           netProfit: -500,
           joinedRound: 0,
           isActive: true,
+          status: 'loss',
         },
       ],
       totalInvested: 500,
@@ -289,6 +411,11 @@ const PyramidSimulation = ({ navigation }: any) => {
         </LinearGradient>
 
         <View style={styles.content}>
+          {/* Visual Pyramid Structure */}
+          <View style={styles.card}>
+            {renderPyramidTree()}
+          </View>
+
           {/* Controls */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Business Controls</Text>
@@ -563,6 +690,167 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
+  pyramidContainer: {
+    marginBottom: 16,
+  },
+  pyramidTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 4,
+    color: '#1f2937',
+  },
+  pyramidSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#6b7280',
+    marginBottom: 16,
+  },
+  pyramidScroll: {
+    marginBottom: 16,
+  },
+  pyramidContent: {
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  pyramidLevel: {
+    alignItems: 'center',
+    marginBottom: 16,
+    minWidth: width - 64,
+  },
+  levelLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  levelMembersContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  memberNodeContainer: {
+    alignItems: 'center',
+    margin: 4,
+  },
+  memberNode: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    padding: 8,
+    minWidth: 70,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+  },
+  profitNode: {
+    backgroundColor: '#dcfce7',
+    borderColor: '#22c55e',
+  },
+  lossNode: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#ef4444',
+  },
+  breakEvenNode: {
+    backgroundColor: '#fef3c7',
+    borderColor: '#f59e0b',
+  },
+  collapsedNode: {
+    opacity: 0.6,
+    borderStyle: 'dashed',
+  },
+  memberNodeText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  memberAmount: {
+    fontSize: 8,
+    color: '#6b7280',
+  },
+  memberProfit: {
+    fontSize: 8,
+    fontWeight: 'bold',
+  },
+  memberRecruits: {
+    fontSize: 8,
+    color: '#6b7280',
+  },
+  profitText: {
+    color: '#16a34a',
+  },
+  lossText: {
+    color: '#dc2626',
+  },
+  connectionLine: {
+    width: 1,
+    height: 12,
+    backgroundColor: '#9ca3af',
+    marginTop: 2,
+  },
+  commissionFlow: {
+    marginTop: 8,
+    backgroundColor: '#dbeafe',
+    borderRadius: 4,
+    padding: 4,
+  },
+  commissionFlowText: {
+    fontSize: 10,
+    color: '#1e40af',
+    textAlign: 'center',
+  },
+  levelArrow: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  arrowDown: {
+    fontSize: 20,
+    color: '#6b7280',
+  },
+  arrowText: {
+    fontSize: 10,
+    color: '#6b7280',
+  },
+  pyramidLegend: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 4,
+    borderWidth: 1,
+  },
+  legendText: {
+    fontSize: 10,
+    color: '#6b7280',
+  },
+  collapseIndicator: {
+    backgroundColor: '#fee2e2',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  collapseText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#dc2626',
+  },
+  collapseSubtext: {
+    fontSize: 12,
+    color: '#dc2626',
+    marginTop: 2,
+  },
   card: {
     backgroundColor: 'white',
     borderRadius: 12,
@@ -638,12 +926,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-  },
-  levelLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    width: 70,
   },
   levelCount: {
     fontSize: 14,
